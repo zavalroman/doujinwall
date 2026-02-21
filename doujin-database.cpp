@@ -89,6 +89,9 @@ bool DoujinDatabase::insertPosts(const QList<WallPost>& posts)
         QString postId = QString::number(p.id);
         QSqlQuery query(database);
 
+        QString postText = p.text;
+        postText.replace("'", "''");
+
         QString queryString = "INSERT INTO post (id, owner_id, from_id, created_by, "
                               "reply_owner_id, reply_post_id, comments_count, "
                               "likes_count, reposts_count, date, text) "
@@ -102,7 +105,8 @@ bool DoujinDatabase::insertPosts(const QList<WallPost>& posts)
                               + QString::number(p.likesCount)     + ", "
                               + QString::number(p.repostsCount)   + ", "
                               + QString::number(p.date)           + ", '"
-                              + p.text                            + "')";
+                              + postText                          + "')";
+
         if (!query.exec(queryString)) {
             qDebug() << "ERROR! Post query:" << queryString;
             qDebug() << "SQL Error:" << query.lastError();
@@ -113,7 +117,8 @@ bool DoujinDatabase::insertPosts(const QList<WallPost>& posts)
             auto it = std::max_element(i.sizes.begin(), i.sizes.end(), [](const ImageCopy& a, const ImageCopy& b) {
                 return a.width < b.width; // Сравниваем по ширине
             });
-
+            QString imageText = i.text;
+            imageText.replace("'", "''");
             QString imageQueryString = "INSERT INTO image (id, post_id, album_id, owner_id, "
                                   "user_id, width, height, date, text, url) "
                                   "VALUES (" + QString::number(i.id) + ", "
@@ -121,11 +126,11 @@ bool DoujinDatabase::insertPosts(const QList<WallPost>& posts)
                                   + QString::number(i.album_id)      + ", "
                                   + QString::number(i.owner_id)      + ", "
                                   + QString::number(i.user_id)       + ", "
-                                  + QString::number(it->width)         + ", "
-                                  + QString::number(it->height)        + ", "
+                                  + QString::number(it->width)       + ", "
+                                  + QString::number(it->height)      + ", "
                                   + QString::number(i.date)          + ", '"
-                                  + i.text                           + "', '"
-                                  + it->url                         + "')";
+                                  + imageText                        + "', '"
+                                  + it->url                          + "')";
             if (!query.exec(imageQueryString)) {
                 qDebug() << "ERROR! Image query:" << imageQueryString;
                 qDebug() << "SQL Error:" << query.lastError();
@@ -134,6 +139,8 @@ bool DoujinDatabase::insertPosts(const QList<WallPost>& posts)
         }
 
         for (auto& f : p.files) {
+            QString fileTitle = f.title;
+            fileTitle.replace("'", "''");
             QString fileQueryString = "INSERT INTO file (id, post_id, owner_id, size, "
                                       "date, title, ext, url) "
                                        "VALUES (" + QString::number(f.id) + ", "
@@ -141,7 +148,7 @@ bool DoujinDatabase::insertPosts(const QList<WallPost>& posts)
                                        + QString::number(f.owner_id)      + ", "
                                        + QString::number(f.size)          + ", "
                                        + QString::number(f.date)          + ", '"
-                                       + f.title                          + "', '"
+                                       + fileTitle                        + "', '"
                                        + f.ext                            + "', '"
                                        + f.url                            + "')";
             if (!query.exec(fileQueryString)) {
@@ -152,4 +159,68 @@ bool DoujinDatabase::insertPosts(const QList<WallPost>& posts)
         }
     }
     return true;
+}
+
+void DoujinDatabase::createFrontAlbumsList()
+{
+    QSqlDatabase database = QSqlDatabase::database(DB_CONNECTION_NAME);
+
+    QSqlQuery query(database);
+    query.exec("DROP TABLE frontAlbumsList");
+
+    bool createResult = query.exec("CREATE TABLE frontAlbumsList ("
+               "id             INTEGER NOT NULL DEFAULT 0, "
+               "title          TEXT NOT NULL, "
+               "text           TEXT NOT NULL, "
+               "coverUrl       TEXT NOT NULL, "
+               "fileName_1     TEXT NOT NULL, "
+               "fileUrl_1      TEXT NOT NULL, "
+               "fileName_2     TEXT NOT NULL, "
+               "fileUrl_2      TEXT NOT NULL, "
+               "likesCount     INTEGER NOT NULL DEFAULT 0, "
+               "PRIMARY KEY (id))");
+
+    if (!createResult) {
+        qDebug() << "CREATE FRONT ALBUMS LIST FAILED";
+        return;
+    }
+
+    struct FileData {
+        QString fileName;
+        QString fileUrl;
+        int fileSize;
+    };
+
+    struct PostData {
+        int id;
+        int date;
+        QString title;
+        QString text;
+        QString imageUrl;
+
+        QList<FileData> files;
+    };
+
+    QList<PostData> posts;
+    query.exec("SELECT id, date, text FROM post");
+    while (query.next()) {
+        PostData p;
+        p.id = query.value(0).toInt();
+        p.date = query.value(1).toInt();
+        p.text = query.value(2).toString();
+
+        posts.append(p);
+    }
+
+    for (auto& p : posts) {
+        query.exec(QString("SELECT url FROM image WHERE post_id = '%1' LIMIT 1").arg(p.id));
+        if (query.next()) {
+            p.imageUrl = query.value(0).toString();
+        }
+
+        query.exec(QString("SELECT size, title, url FROM file WHERE post_id = '%1'").arg(p.id));
+        while (query.next()) {
+            p.fileSize_1 = query.value(0).toString();
+        }
+    }
 }

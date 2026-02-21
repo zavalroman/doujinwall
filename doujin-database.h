@@ -14,6 +14,8 @@ public:
     static void init();
     static bool insertPosts(const QList<WallPost>& posts);
 
+    static void createFrontAlbumsList();
+
 signals:
 };
 

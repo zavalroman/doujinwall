@@ -17,7 +17,7 @@ public:
     }
 
     void wallGet(int offset, int count,
-                 std::function<void(const QList<WallPost>&)> callback);
+                 std::function<void (const QList<WallPost> &, bool)> callback);
 
 signals:
 

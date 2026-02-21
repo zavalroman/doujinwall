@@ -13,12 +13,12 @@ public:
 
     void get(const QString& token,
              const QString& url,
-             std::function<void (QJsonDocument)> callback);
+             std::function<void (QJsonDocument, bool)> callback);
 
     void post(const QString &token,
               const QString& url,
               const QByteArray& data,
-              std::function<void (QJsonDocument)> callback);
+              std::function<void (QJsonDocument, bool)> callback);
 
 private:
     const QString TAG = "RestClient";
@@ -30,7 +30,7 @@ private:
 
     QNetworkRequest createRequest(const QString& token, const QString& url);
 
-    void finish(QRestReply &reply, std::function<void (QJsonDocument)> callback);
+    void finish(QRestReply &reply, std::function<void (QJsonDocument, bool)> callback);
 };
 
 #endif // REST_CLIENT_H

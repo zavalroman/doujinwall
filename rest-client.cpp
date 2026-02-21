@@ -13,9 +13,9 @@ RestClient::RestClient(QObject *parent, QString apiUrl)
 
 void RestClient::get(const QString &token,
                      const QString &url,
-                     std::function<void (QJsonDocument doc)> callback)
+                     std::function<void (QJsonDocument, bool)> callback)
 {
-    qDebug() << "GET REQUEST PARAMS" << url << token;
+    //qDebug() << "GET REQUEST PARAMS" << url << token;
     QNetworkRequest request = createRequest(token, url);
 
     restManager->get(request, this, [this, callback](QRestReply &reply) {
@@ -27,7 +27,7 @@ void RestClient::get(const QString &token,
 void RestClient::post(const QString& token,
                       const QString &url,
                       const QByteArray &data,
-                      std::function<void(QJsonDocument doc)> callback)
+                      std::function<void(QJsonDocument doc, bool success)> callback)
 {
     QNetworkRequest request = createRequest(token, url);
 
@@ -50,10 +50,10 @@ QNetworkRequest RestClient::createRequest(const QString &token, const QString &u
     return request;
 }
 
-void RestClient::finish(QRestReply &reply, std::function<void (QJsonDocument doc)> callback)
+void RestClient::finish(QRestReply &reply, std::function<void (QJsonDocument doc, bool success)> callback)
 {
     if (!reply.isSuccess()) {
         qDebug() << "HTTP request not successful: " << reply.errorString();
     }
-    callback(QJsonDocument::fromJson(reply.readBody()));
+    callback(QJsonDocument::fromJson(reply.readBody()), reply.isSuccess());
 }
