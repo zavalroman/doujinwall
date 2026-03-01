@@ -12,7 +12,7 @@ VkApi::VkApi(QObject *parent)
 
 void VkApi::wallGet(int offset, int count,
                     std::function<void(const QList<WallPost>&, bool success)> callback)
-{ // &access_token=1589dcb51589dcb51589dcb59b15ddaefa115891589dcb54a1334c5b86bd37ee8d2e92b
+{
     QString url = QString("wall.get?domain=doujinmusic&offset=%1&count=%2&v=5.199")
                     .arg(offset).arg(count);
     qDebug() << "URL" << url;
